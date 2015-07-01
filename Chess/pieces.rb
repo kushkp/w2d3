@@ -20,11 +20,18 @@ module Movable
       next_pos = [next_pos[0] + (dr * direction), next_pos[1] + (dc * direction)]
     end
 
-    if Board.on_board?(next_pos) && @board[*next_pos].color == other_color
+    if opponent_at?(next_pos)
       avail_pos << next_pos
     end
-
     avail_pos
+  end
+
+  def opponent_at?(pos)
+    Board.on_board?(pos) && @board[*pos].color == other_color
+  end
+
+  def empty_on_board?(pos)
+    Board.on_board?(pos) && board[*pos].empty?
   end
 end
 
@@ -66,10 +73,13 @@ class Piece
   attr_reader :board, :pos, :color
   attr_accessor :moved
 
+  include Movable
+
   def initialize(pos, board, color)
     @board = board
     @pos = pos
     @color = color
+    @moved = false
   end
 
   def empty?
@@ -141,7 +151,7 @@ class SteppingPiece < Piece
     moves = []
     @deltas.each do |delta|
       new_pos = [delta[0] + pos[0], delta[1] + pos[1]]
-      moves << new_pos if Board.on_board?(new_pos) && board[*new_pos].color != color
+      moves << new_pos if opponent_at?(new_pos) || empty_on_board?(new_pos)
     end
     moves
   end
@@ -225,13 +235,39 @@ class Queen < SlidingPiece
 end
 
 class Pawn < Piece
+  DIRECTION = { :black => [1,0], :white => [-1,0] }
+
   def initialize(pos, board, color)
     super
-    @moved = false
+  end
+
+  def vertical_moves
+    vertical_moves = []
+    num_spaces = 1 + (@moved ? 0 : 1)
+    new_pos = pos
+    num_spaces.times do
+      new_pos = add_change_to_pos(DIRECTION[color], new_pos)
+      vertical_moves << new_pos
+    end
+    vertical_moves
+  end
+
+  def add_change_to_pos(differential, pos)
+    [pos[0] + differential[0], pos[1] + differential[1]]
+  end
+
+  def capture_moves
+    direction = DIRECTION[color]
+    left_capture = add_change_to_pos([direction[0], -1], pos)
+    right_capture = add_change_to_pos([direction[0], 1], pos)
+    [left_capture, right_capture].select do |position|
+      opponent_at?(position)
+    end
+
   end
 
   def available_moves
-    []
+    vertical_moves + capture_moves
   end
 
   def to_s

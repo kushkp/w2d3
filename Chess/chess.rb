@@ -31,3 +31,7 @@ class Game
       @display.update(input)
     end
 end
+
+if __FILE__ == $PROGRAM_NAME
+  Game.new.play
+end

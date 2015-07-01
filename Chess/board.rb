@@ -1,18 +1,20 @@
+require 'byebug'
 require_relative "pieces"
 
 class Board
-  def initialize
+  def initialize(populate = true)
     @grid = Array.new(8) { Array.new(8) { EmptySquare.new } }
-    populate_grid
+    populate_grid if populate
   end
 
   def dup
-    new_board = Board.new
+    new_board = Board.new(false)
     (0..7).each do |i|
       (0..7).each do |j|
         if self[i, j].is_a?(Piece)
           curr_piece = self[i, j]
           new_board[i, j] = curr_piece.dup([i, j], new_board, curr_piece.color)
+          new_board[i, j].has_moved if curr_piece.moved
         end
       end
     end
@@ -64,6 +66,9 @@ class Board
     opposing_pieces = all_pieces(opposing_color)
 
     opposing_pieces.any? do |piece|
+      # if piece.available_moves.include?(king.pos)
+      #   puts "Hello, it is I, #{piece}"
+      # end
       piece.available_moves.include?(king.pos)
     end
   end
@@ -104,6 +109,7 @@ class Board
     valid_moves = current_piece.available_moves.reject do |move|
       current_piece.move_into_check?(move)
     end
+    # p "Valid Moves are: #{valid_moves}"
     valid_moves.include?(end_pos)
   end
 

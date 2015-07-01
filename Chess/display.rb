@@ -19,9 +19,17 @@ class Display
 
   def render
     system("clear")
+    if @selected_square.nil?
+      avail_moves = board[*cursor].available_moves
+      avail_moves.select! { |move| board.valid_move?(cursor, move) }
+    else
+      avail_moves = board[*@selected_square].available_moves
+      avail_moves.select! { |move| board.valid_move?(@selected_square, move) }
+    end
+
     board.size.times do |r|
       board.size.times do |c|
-        print color(r, c, board[r, c])
+        print color(r, c, avail_moves)
       end
       print "\n"
     end
@@ -38,12 +46,11 @@ class Display
   private
   attr_accessor :cursor
 
-  def color(r, c, square)
+  def color(r, c, available_moves)
     bg_color = alternating_colors(r, c)
-
     if cursor == [r, c]
       bg_color = :yellow
-    elsif in_available_moves?(r, c)
+    elsif available_moves.include?([r, c])
       if board[r, c].empty?
         bg_color = :green
       else
@@ -51,7 +58,7 @@ class Display
       end
     end
 
-    " #{square.to_s} ".colorize(background: bg_color)
+    " #{board[r, c].to_s} ".colorize(background: bg_color)
   end
 
   def alternating_colors(row,col)
@@ -62,7 +69,9 @@ class Display
     if @selected_square.nil?
       board[*cursor].available_moves.include?([row, col])
     else
-      board[*@selected_square].available_moves.include?([row, col])
+      moves = board[*@selected_square].available_moves
+      moves.select { |move| board.valid_move?(@selected_square, move) }
+      moves.include?([row, col])
     end
   end
 
@@ -70,13 +79,17 @@ class Display
     puts "cursor at: #{cursor} "
     puts "current square: #{@board[*cursor]} "
     puts "available_moves #{@board[*cursor].available_moves} "
+    puts "available_moves #{@board[0,0].available_moves }"
+    puts "available_moves #{@board.find_king(:white).available_moves }"
+    puts "Current object: #{@board[*cursor].inspect}"
     puts "Current object: #{@board[*cursor].inspect}"
     puts "Selection Queue: #{@selection_queue}"
     puts "Find King black: #{@board.find_king(:black)}"
     puts "Find King white: #{@board.find_king(:white)}"
-    puts "all Pieces: #{@board.all_pieces(@board[*cursor].color)}"
+    # puts "all Pieces: #{@board.all_pieces(@board[*cursor].color)}"
     puts "Black King in Check?: #{@board.in_check?(:black)}"
     puts "White King in Check?: #{@board.in_check?(:white)}"
+    puts ""
 
   end
 

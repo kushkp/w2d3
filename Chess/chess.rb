@@ -33,5 +33,10 @@ class Game
 end
 
 if __FILE__ == $PROGRAM_NAME
-  Game.new.play
+  g = Game.new
+  # g.board[4, 4] = g.board[7, 4]
+  # g.board[7, 4] = EmptySquare.new
+  # g.board[2, 3] = g.board[1, 3]
+  # g.board[1, 3] = EmptySquare.new
+  g.play
 end

@@ -23,7 +23,7 @@ class Piece
   end
 
   def inspect
-    "<Pos: #{pos}, Color: #{color}> \nClass: #{self.class}"
+    "#{color} #{self.class}"
   end
 
   def move
@@ -42,19 +42,12 @@ class Piece
     new_board.in_check?(color)
   end
 
-
   def opponent_at?(pos)
     board.on_board?(pos) && board[*pos].color == other_color
   end
 
   def other_color
     color == :white ? :black : :white
-  end
-
-  def reject_in_check_moves
-    current_piece.available_moves.reject do |move|
-      current_piece.move_into_check?(move)
-    end
   end
 
   def to_s
@@ -81,6 +74,10 @@ class EmptySquare
 
   def available_moves
     []
+  end
+
+  def inspect
+    "."
   end
 
   def to_s
@@ -135,10 +132,10 @@ class King < Piece
     super
     @deltas = [-1,0,1].repeated_permutation(2).to_a.reject {|d| d == [0,0] }
   end
-
-  def available_moves
-    super
-  end
+  #
+  # def available_moves
+    # moves = super
+  # end
 
   def to_s
     color == :white ? "\u2654" : "\u265a"
@@ -175,7 +172,7 @@ class Pawn < Piece
     new_pos = pos
     num_spaces.times do
       new_pos = add_change_to_pos(DIRECTION[color], new_pos)
-      vertical_moves << new_pos
+      vertical_moves << new_pos if board[*new_pos].empty?
     end
 
     vertical_moves

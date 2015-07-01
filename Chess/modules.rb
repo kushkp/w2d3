@@ -70,6 +70,7 @@ module SteppingPiece
         moves << new_pos
       end
     end
+    
     moves
   end
 end

@@ -10,11 +10,11 @@ class Game
   end
 
   def play
-    input = nil
-    until input == 'q'
+    loop do
       render_display
       input = get_user_input
       update_cursor(input)
+      break if input =='q'
     end
   end
 

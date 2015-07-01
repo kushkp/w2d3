@@ -1,4 +1,4 @@
-require_relative "board"
+# require_relative "board"
 
 module Movable
   DIRECTION = { :vertical => [0, 1],
@@ -70,8 +70,8 @@ module Lateralizable
 end
 
 class Piece
-  attr_reader :board, :pos, :color
-  attr_accessor :moved
+  attr_reader :board, :color
+  attr_accessor :moved, :pos
 
   include Movable
 
@@ -91,7 +91,7 @@ class Piece
   end
 
   def inspect
-    "<Pos: #{pos}, Color: #{color}> \nCurrent piece: #{self.class}"
+    "<Pos: #{pos}, Color: #{color}> \nClass: #{self.class}"
   end
 
   def move
@@ -109,6 +109,7 @@ class Piece
   def valid_moves
     raise "Not yet implemented"
   end
+
 end
 
 class EmptySquare
@@ -132,14 +133,6 @@ class EmptySquare
   end
 end
 
-class SlidingPiece < Piece
-
-  def move
-  end
-
-  def valid_moves
-  end
-end
 
 class SteppingPiece < Piece
   def initialize(pos, board, color)
@@ -249,6 +242,7 @@ class Pawn < Piece
       new_pos = add_change_to_pos(DIRECTION[color], new_pos)
       vertical_moves << new_pos
     end
+
     vertical_moves
   end
 
@@ -263,7 +257,10 @@ class Pawn < Piece
     [left_capture, right_capture].select do |position|
       opponent_at?(position)
     end
+  end
 
+  def has_moved
+    @moved = true
   end
 
   def available_moves
@@ -273,5 +270,4 @@ class Pawn < Piece
   def to_s
     color == :white ? "\u2659" : "\u265f"
   end
-
 end

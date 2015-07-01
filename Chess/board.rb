@@ -1,7 +1,6 @@
 require_relative "pieces"
 
 class Board
-
   def initialize
     @grid = Array.new(8) { Array.new(8) { EmptySquare.new } }
     populate_grid
@@ -23,6 +22,18 @@ class Board
     @grid[row][col] = value
   end
 
+  def find_king(color)
+    (0..7).each do |i|
+      (0..7).each do |j|
+        if self[i, j].is_a?(King) && self[i, j].color == color
+          return [i, j]
+        end
+      end
+    end
+
+    nil
+  end
+
   def populate_grid
     add_pawns
     add_rooks
@@ -32,13 +43,48 @@ class Board
   end
 
   def in_check?(color)
+    king_pos = find_king(color)
+    opposing_color = self[*king_pos].other_color
+    opposing_pieces = all_pieces(opposing_color)
+
+    opposing_pieces.any? do |piece|
+      piece.available_moves.include?(king_pos)
+    end
+  end
+
+  def all_pieces(color)
+    pieces = []
+    (0..7).each do |i|
+      (0..7).each do |j|
+        if self[i, j].color == color
+          pieces << self[i, j]
+        end
+      end
+    end
+
+    pieces
   end
 
   def move(start_pos, end_pos)
+    return if start_pos == end_pos
+    if valid_move?(start_pos, end_pos)
+      self[*end_pos] = self[*start_pos]
+      self[*end_pos].set_new_pos_to(end_pos)
+      self[*start_pos] = EmptySquare.new
+      self[*end_pos].has_moved if self[*end_pos].is_a?(Pawn)
+    end
+  end
+
+  def valid_move?(start_pos, end_pos)
+    self[*start_pos].available_moves.include?(end_pos)
   end
 
   private
     attr_reader :grid
+
+    # [Rook, Pawn].each do |piece|
+    #   grid << piece.new()
+    # end
 
     def add_pawns
       size.times do |col|

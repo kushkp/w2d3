@@ -83,7 +83,6 @@ class Display
   def new_pos(input)
     change = MOVEMENTS[input]
     if input == "\r"
-      puts "return was hit"
       @selection_queue << cursor.dup
       handle_selection_queue
       cursor
@@ -103,7 +102,7 @@ class Display
   end
 
   def result_on_board(pos)
-    Board.on_board?(pos)
+    board.on_board?(pos)
   end
 
   def valid?(input)

@@ -1,79 +1,11 @@
-# require_relative "board"
-
-module Movable
-  DIRECTION = { :vertical => [0, 1],
-                :horizontal => [1 , 0],
-                :pos_diag => [1, -1],
-                :neg_diag => [1, 1] }
-
-  def get_moves(direction)
-    dx, dy = DIRECTION[direction]
-    positions(dx, dy, true) + positions(dx, dy, false)
-  end
-
-  def positions(dr, dc, positive)
-    avail_pos = []
-    direction = (positive ? 1 : -1)
-    next_pos = [pos[0] + (dr * direction), pos[1] + (dc * direction)]
-    while Board.on_board?(next_pos) && board[*next_pos].empty?
-      avail_pos << next_pos
-      next_pos = [next_pos[0] + (dr * direction), next_pos[1] + (dc * direction)]
-    end
-
-    if opponent_at?(next_pos)
-      avail_pos << next_pos
-    end
-    avail_pos
-  end
-
-  def opponent_at?(pos)
-    Board.on_board?(pos) && @board[*pos].color == other_color
-  end
-
-  def empty_on_board?(pos)
-    Board.on_board?(pos) && board[*pos].empty?
-  end
-end
-
-module Diagonalizable
-  include Movable
-
-  def diagonal_moves
-    pos_diagonal_moves + neg_diagonal_moves
-  end
-
-  #private
-    def pos_diagonal_moves
-      get_moves(:pos_diag)
-    end
-
-    def neg_diagonal_moves
-      get_moves(:neg_diag)
-    end
-end
-
-module Lateralizable
-  include Movable
-
-  def lateral_moves
-    vertical_moves + horizontal_moves
-  end
-
-  #private
-    def vertical_moves
-      get_moves(:vertical)
-    end
-
-    def horizontal_moves
-      get_moves(:horizontal)
-    end
-end
+require_relative 'modules'
 
 class Piece
+  include Movable
+
   attr_reader :board, :color
   attr_accessor :moved, :pos
 
-  include Movable
 
   def initialize(pos, board, color)
     @board = board
@@ -98,8 +30,31 @@ class Piece
     raise "Not yet implemented"
   end
 
+  def dup(pos, board, color)
+    self.class.new(pos, board, color)
+  end
+
+  def move_into_check?(pos)
+    start_pos = self.pos
+    end_pos = pos
+    new_board = board.dup
+    new_board.move!(start_pos, end_pos)
+    new_board.in_check?(color)
+  end
+
+
+  def opponent_at?(pos)
+    board.on_board?(pos) && board[*pos].color == other_color
+  end
+
   def other_color
     color == :white ? :black : :white
+  end
+
+  def reject_in_check_moves
+    current_piece.available_moves.reject do |move|
+      current_piece.move_into_check?(move)
+    end
   end
 
   def to_s
@@ -116,6 +71,10 @@ class EmptySquare
   def initialize
   end
 
+  def color
+    false
+  end
+
   def empty?
     true
   end
@@ -124,37 +83,14 @@ class EmptySquare
     []
   end
 
-  def color
-    false
-  end
-
   def to_s
     " "
   end
 end
 
 
-class SteppingPiece < Piece
-  def initialize(pos, board, color)
-    super
-    @deltas = nil
-  end
 
-  def available_moves
-    moves = []
-    @deltas.each do |delta|
-      new_pos = [delta[0] + pos[0], delta[1] + pos[1]]
-      moves << new_pos if opponent_at?(new_pos) || empty_on_board?(new_pos)
-    end
-    moves
-  end
-
-  def move
-  end
-
-end
-
-class Rook < SlidingPiece
+class Rook < Piece
   include Lateralizable
 
   def available_moves
@@ -166,15 +102,13 @@ class Rook < SlidingPiece
   end
 end
 
-class Knight < SteppingPiece
+class Knight < Piece
+  include SteppingPiece
+
   def initialize(pos, board, color)
     super
     @deltas = [[-1,-2], [1, -2], [-1, 2], [1, 2],
             [-2, -1], [-2, 1], [2, -1], [2, 1]]
-  end
-
-  def available_moves
-    super
   end
 
   def to_s
@@ -182,7 +116,7 @@ class Knight < SteppingPiece
   end
 end
 
-class Bishop < SlidingPiece
+class Bishop < Piece
   include Diagonalizable
 
   def available_moves
@@ -194,7 +128,8 @@ class Bishop < SlidingPiece
   end
 end
 
-class King < SteppingPiece
+class King < Piece
+  include SteppingPiece
 
   def initialize(pos, board, color)
     super
@@ -214,7 +149,7 @@ class King < SteppingPiece
   end
 end
 
-class Queen < SlidingPiece
+class Queen < Piece
   include Diagonalizable
   include Lateralizable
 

@@ -6,7 +6,21 @@ class Board
     populate_grid
   end
 
-  def self.on_board?(pos)
+  def dup
+    new_board = Board.new
+    (0..7).each do |i|
+      (0..7).each do |j|
+        if self[i, j].is_a?(Piece)
+          curr_piece = self[i, j]
+          new_board[i, j] = curr_piece.dup([i, j], new_board, curr_piece.color)
+        end
+      end
+    end
+
+    new_board
+  end
+
+  def on_board?(pos)
     pos.all? { |coord| coord.between?(0,7) }
   end
 
@@ -22,12 +36,14 @@ class Board
     @grid[row][col] = value
   end
 
+  def empty_on_board?(pos)
+    on_board?(pos) && self[*pos].empty?
+  end
+
   def find_king(color)
-    (0..7).each do |i|
-      (0..7).each do |j|
-        if self[i, j].is_a?(King) && self[i, j].color == color
-          return [i, j]
-        end
+    grid.flatten.each do |square|
+      if square.is_a?(King) && square.color == color
+        return square
       end
     end
 
@@ -43,12 +59,12 @@ class Board
   end
 
   def in_check?(color)
-    king_pos = find_king(color)
-    opposing_color = self[*king_pos].other_color
+    king = find_king(color)
+    opposing_color = king.other_color
     opposing_pieces = all_pieces(opposing_color)
 
     opposing_pieces.any? do |piece|
-      piece.available_moves.include?(king_pos)
+      piece.available_moves.include?(king.pos)
     end
   end
 
@@ -69,14 +85,26 @@ class Board
     return if start_pos == end_pos
     if valid_move?(start_pos, end_pos)
       self[*end_pos] = self[*start_pos]
-      self[*end_pos].set_new_pos_to(end_pos)
+      self[*end_pos].pos = end_pos
       self[*start_pos] = EmptySquare.new
       self[*end_pos].has_moved if self[*end_pos].is_a?(Pawn)
     end
   end
 
+  def move!(start_pos, end_pos)
+    return if start_pos == end_pos
+    self[*end_pos] = self[*start_pos]
+    self[*end_pos].pos = end_pos
+    self[*start_pos] = EmptySquare.new
+    self[*end_pos].has_moved if self[*end_pos].is_a?(Pawn)
+  end
+
   def valid_move?(start_pos, end_pos)
-    self[*start_pos].available_moves.include?(end_pos)
+    current_piece = self[*start_pos]
+    valid_moves = current_piece.available_moves.reject do |move|
+      current_piece.move_into_check?(move)
+    end
+    valid_moves.include?(end_pos)
   end
 
   private

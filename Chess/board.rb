@@ -2,9 +2,13 @@ require 'byebug'
 require_relative "pieces"
 
 class Board
+  attr_accessor :move_made, :current_color
+
   def initialize(populate = true)
     @grid = Array.new(8) { Array.new(8) { EmptySquare.new } }
     populate_grid if populate
+    @move_made = false
+    @current_color = :black
   end
 
   def dup
@@ -24,6 +28,18 @@ class Board
 
   def on_board?(pos)
     pos.all? { |coord| coord.between?(0,7) }
+  end
+
+  def checkmate?(color)
+    in_check?(color) && !any_valid_moves?(color)
+  end
+
+  def any_valid_moves?(color)
+    all_pieces(color).any? do |piece|
+      piece.available_moves.any? do |move|
+        valid_move?(piece.pos, move)
+      end
+    end
   end
 
   def size
@@ -66,9 +82,6 @@ class Board
     opposing_pieces = all_pieces(opposing_color)
 
     opposing_pieces.any? do |piece|
-      # if piece.available_moves.include?(king.pos)
-      #   puts "Hello, it is I, #{piece}"
-      # end
       piece.available_moves.include?(king.pos)
     end
   end
@@ -93,6 +106,10 @@ class Board
       self[*end_pos].pos = end_pos
       self[*start_pos] = EmptySquare.new
       self[*end_pos].has_moved if self[*end_pos].is_a?(Pawn)
+      self.move_made = true
+      switch_colors
+    else
+      self.move_made = false
     end
   end
 
@@ -105,20 +122,20 @@ class Board
   end
 
   def valid_move?(start_pos, end_pos)
+    return false if self[*start_pos].color != current_color
     current_piece = self[*start_pos]
     valid_moves = current_piece.available_moves.reject do |move|
       current_piece.move_into_check?(move)
     end
-    # p "Valid Moves are: #{valid_moves}"
     valid_moves.include?(end_pos)
+  end
+
+  def switch_colors
+    self.current_color = (current_color == :black ? :white : :black )
   end
 
   private
     attr_reader :grid
-
-    # [Rook, Pawn].each do |piece|
-    #   grid << piece.new()
-    # end
 
     def add_pawns
       size.times do |col|
